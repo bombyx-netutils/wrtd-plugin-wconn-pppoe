@@ -1,5 +1,5 @@
 {
-    "wan-connection", "cn-bj-gwbn-4m",
+    "plugin", "cn-bj-gwbn-4m",
     "interface": "enp3s0",
     "username": "test",
     "password": "test,
