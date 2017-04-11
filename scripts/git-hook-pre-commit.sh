@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LIBFILES="$(find ./wct-pppoe -name '*.py' | tr '\n' ' ')"
+LIBFILES="$(find ./wct)pppoe -name '*.py' | tr '\n' ' ')"
 ERRFLAG=0
 
 OUTPUT=`pyflakes ${LIBFILES} 2>&1`
