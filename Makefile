@@ -1,6 +1,6 @@
 PACKAGE_VERSION=0.0.1
 prefix=/usr
-plugin=wct_pppoe
+plugin=wconn_pppoe
 
 all:
 
