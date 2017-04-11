@@ -7,17 +7,16 @@ import time
 import shutil
 import subprocess
 import multiprocessing
-from wrt_util import NewMountNamespace
 
 
 def get_plugin_list(self):
     return [
-        "gwbn-4m",             # 长城宽带4M
+        "cn-bj-gwbn-4m",             # 中国北京长城宽带4M
     ]
 
 
 def get_plugin(self, name):
-    if name == "gwbn":
+    if name == "cn-bj-gwbn-4m":
         return _PluginObject(4 * 1024 * 1024 / 8)
     else:
         assert False
@@ -26,7 +25,7 @@ def get_plugin(self, name):
 class _PluginObject:
 
     def __init__(self, bandwidth):
-        self.bandwidth = bandwidth
+        self.bandwidth = bandwidth              # byte/s
 
     def init2(self, cfg, tmpDir, ownResolvConf):
         self.cfg = cfg
@@ -113,7 +112,7 @@ class _PluginObject:
                 buf += "user %s\n" % (username)
                 f.write(buf)
 
-            with NewMountNamespace():
+            with _UtilNewMountNamespace():
                 # pppd read config files from the fixed location /etc/ppp
                 # this behavior is bad so we use mount namespace to workaround it
                 subprocess.check_output(["/bin/mount", "--bind", tmpEtcPppDir, "/etc/ppp"])
@@ -125,3 +124,49 @@ class _PluginObject:
                 shutil.rmtree(tmpEtcPppDir)
             if proc is not None:
                 sys.exit(proc.returncode)
+
+
+class _UtilNewMountNamespace:
+
+    _CLONE_NEWNS = 0x00020000               # <linux/sched.h>
+    _MS_REC = 16384                         # <sys/mount.h>
+    _MS_PRIVATE = 1 << 18                   # <sys/mount.h>
+    _libc = None
+    _mount = None
+    _setns = None
+    _unshare = None
+
+    def __init__(self):
+        if self._libc is None:
+            self._libc = ctypes.CDLL('libc.so.6', use_errno=True)
+            self._mount = self._libc.mount
+            self._mount.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_ulong, ctypes.c_char_p]
+            self._mount.restype = ctypes.c_int
+            self._setns = self._libc.setns
+            self._unshare = self._libc.unshare
+
+        self.parentfd = None
+
+    def __enter__(self):
+        self.parentfd = open("/proc/%d/ns/mnt" % (os.getpid()), 'r')
+
+        # copied from unshare.c of util-linux
+        try:
+            if self._unshare(self._CLONE_NEWNS) != 0:
+                e = ctypes.get_errno()
+                raise OSError(e, errno.errorcode[e])
+
+            srcdir = ctypes.c_char_p("none".encode("utf_8"))
+            target = ctypes.c_char_p("/".encode("utf_8"))
+            if self._mount(srcdir, target, None, (self._MS_REC | self._MS_PRIVATE), None) != 0:
+                e = ctypes.get_errno()
+                raise OSError(e, errno.errorcode[e])
+        except:
+            self.parentfd.close()
+            self.parentfd = None
+            raise
+
+    def __exit__(self, *_):
+        self._setns(self.parentfd.fileno(), 0)
+        self.parentfd.close()
+        self.parentfd = None
