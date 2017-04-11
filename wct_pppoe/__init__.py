@@ -33,7 +33,7 @@ class _PluginObject:
         self.ownResolvConf = ownResolvConf
 
     def start(self):
-        subprocess.check_output(["/bin/ifconfig", self.cfg["interface"], "up"])
+        _Util.ifUp(self.cfg["interface"])
 
         if "username" in self.cfg:
             username = self.cfg["username"]
@@ -124,6 +124,22 @@ class _PluginObject:
                 shutil.rmtree(tmpEtcPppDir)
             if proc is not None:
                 sys.exit(proc.returncode)
+
+
+class _Util:
+
+    @staticmethod
+    def ifUp(ifname):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            ifreq = struct.pack("16sh", ifname, 0)
+            ret = fcntl.ioctl(s.fileno(), 0x8913, ifreq)
+            flags = struct.unpack("16sh", ret)[1]                   # SIOCGIFFLAGS
+            flags |= 0x1
+            ifreq = struct.pack("16sh", ifname, flags)
+            fcntl.ioctl(s.fileno(), 0x8914, ifreq)                  # SIOCSIFFLAGS
+        finally:
+            s.close()
 
 
 class _UtilNewMountNamespace:
