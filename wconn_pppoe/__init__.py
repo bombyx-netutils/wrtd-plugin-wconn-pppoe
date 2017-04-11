@@ -5,6 +5,11 @@ import os
 import sys
 import time
 import shutil
+import socket
+import struct
+import fcntl
+import ctypes
+import errno
 import subprocess
 import multiprocessing
 
@@ -115,7 +120,7 @@ class _PluginObject:
             with _UtilNewMountNamespace():
                 # pppd read config files from the fixed location /etc/ppp
                 # this behavior is bad so we use mount namespace to workaround it
-                subprocess.check_output(["/bin/mount", "--bind", tmpEtcPppDir, "/etc/ppp"])
+                subprocess.check_call(["/bin/mount", "--bind", tmpEtcPppDir, "/etc/ppp"])
                 cmd = "/usr/sbin/pppd call wan nodetach"
                 proc = subprocess.Popen(cmd, shell=True, universal_newlines=True)
                 proc.wait()
