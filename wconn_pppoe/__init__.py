@@ -4,12 +4,13 @@
 import os
 import sys
 import time
+import fcntl
+import errno
 import shutil
 import socket
 import struct
-import fcntl
 import ctypes
-import errno
+import logging
 import subprocess
 import multiprocessing
 
@@ -36,34 +37,42 @@ class _PluginObject:
         self.cfg = cfg
         self.tmpDir = tmpDir
         self.ownResolvConf = ownResolvConf
+        self.proc = None
 
     def start(self):
-        _Util.ifUp(self.cfg["interface"])
-
-        if "username" in self.cfg:
-            username = self.cfg["username"]
-        else:
-            username = ""
-        if "password" in self.cfg:
-            password = self.cfg["password"]
-        else:
-            password = ""
-
-        self.proc = multiprocessing.Process(target=self._subprocPppoe,
-                                            args=("", self.cfg["interface"], username, password, ))
-        self.proc.start()
-
-        while not os.path.exists(os.path.join(self.tmpDir, "etc-ppp", "resolv.conf")):
-            time.sleep(1.0)
+        pass
 
     def stop(self):
         if self.proc is not None:
             self.proc.terminate()
             self.proc.join()
             self.proc = None
+        _Util.setInterfaceUpDown(self.cfg["interface"], False)
 
-    def getOutInterface(self):
+    def get_out_interface(self):
         return "wrt-ppp-wan"
+
+    def interface_appear(self, ifname):
+        if ifname != self.cfg["interface"]:
+            return False
+
+        assert self.proc is None
+        _Util.setInterfaceUpDown(self.cfg["interface"], True)
+        self.proc = multiprocessing.Process(target=self._subprocPppoe,
+                                            args=("", self.cfg["interface"], self.cfg.get("username", ""), self.cfg.get("password", ""), ))
+        self.proc.start()
+        while not os.path.exists(os.path.join(self.tmpDir, "etc-ppp", "resolv.conf")):
+            time.sleep(1.0)
+
+        logging.info("WAN: Internet interface %s is managed.")
+        return True
+
+    def interface_disappear(self, ifname):
+        assert ifname == self.cfg["interface"]
+        if self.proc is not None:
+            self.proc.terminate()
+            self.proc.join()
+            self.proc = None
 
     def _subprocPppoe(self, optionTemplate, interface, username, password):
         tmpEtcPppDir = os.path.join(self.tmpDir, "etc-ppp")
@@ -76,11 +85,12 @@ class _PluginObject:
         try:
             os.mkdir(tmpEtcPppDir)
 
-            with open(tmpPapSecretsFile, "w") as f:
-                buf = ""
-                buf += "%s wan \"%s\" *\n" % (username, password)
-                f.write(buf)
-            os.chmod(tmpPapSecretsFile, 0o600)
+            if username != "" and password != "":
+                with open(tmpPapSecretsFile, "w") as f:
+                    buf = ""
+                    buf += "%s wan \"%s\" *\n" % (username, password)
+                    f.write(buf)
+                os.chmod(tmpPapSecretsFile, 0o600)
 
             with open(tmpIpUpScript, "w") as f:
                 buf = ""
@@ -112,7 +122,8 @@ class _PluginObject:
                 buf += "defaultroute\n"
                 buf += "usepeerdns\n"
                 buf += "remotename wan\n"
-                buf += "user %s\n" % (username)
+                if username != "":
+                    buf += "user %s\n" % (username)
                 f.write(buf)
 
             with _UtilNewMountNamespace():
@@ -132,13 +143,18 @@ class _PluginObject:
 class _Util:
 
     @staticmethod
-    def ifUp(ifname):
+    def setInterfaceUpDown(ifname, upOrDown):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             ifreq = struct.pack("16sh", ifname.encode("ascii"), 0)
             ret = fcntl.ioctl(s.fileno(), 0x8913, ifreq)
             flags = struct.unpack("16sh", ret)[1]                   # SIOCGIFFLAGS
-            flags |= 0x1
+
+            if upOrDown:
+                flags |= 0x1
+            else:
+                flags &= ~0x1
+
             ifreq = struct.pack("16sh", ifname.encode("ascii"), flags)
             fcntl.ioctl(s.fileno(), 0x8914, ifreq)                  # SIOCSIFFLAGS
         finally:
