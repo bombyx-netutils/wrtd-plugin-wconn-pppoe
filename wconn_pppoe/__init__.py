@@ -14,13 +14,13 @@ import subprocess
 import multiprocessing
 
 
-def get_plugin_list(self):
+def get_plugin_list():
     return [
         "cn-bj-gwbn-4m",             # 中国北京长城宽带4M
     ]
 
 
-def get_plugin(self, name):
+def get_plugin(name):
     if name == "cn-bj-gwbn-4m":
         return _PluginObject(4 * 1024 * 1024 / 8)
     else:
@@ -80,7 +80,7 @@ class _PluginObject:
                 buf = ""
                 buf += "%s wan \"%s\" *\n" % (username, password)
                 f.write(buf)
-            os.chmod(0o600, tmpPapSecretsFile)
+            os.chmod(tmpPapSecretsFile, 0o600)
 
             with open(tmpIpUpScript, "w") as f:
                 buf = ""
@@ -90,16 +90,14 @@ class _PluginObject:
                 buf += "[ -n \"$DNS1\" ] && echo \"nameserver $DNS1\" >> %s\n" % (self.ownResolvConf)
                 buf += "[ -n \"$DNS2\" ] && echo \"nameserver $DNS2\" >> %s\n" % (self.ownResolvConf)
                 f.write(buf)
-            os.chmod(0o755, tmpPapSecretsFile)
-
-            os.chmod(0o755, tmpIpUpScript)
+            os.chmod(tmpIpUpScript, 0o755)
 
             with open(tmpIpDownScript, "w") as f:
                 buf = ""
                 buf += "#!/bin/sh\n"
                 buf += "\n"
                 buf += "echo \"\" > %s\n" % (self.ownResolvConf)
-            os.chmod(0o755, tmpIpDownScript)
+            os.chmod(tmpIpDownScript, 0o755)
 
             os.mkdir(os.path.dirname(tmpPeerFile))
             with open(tmpPeerFile, "w") as f:
@@ -137,11 +135,11 @@ class _Util:
     def ifUp(ifname):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            ifreq = struct.pack("16sh", ifname, 0)
+            ifreq = struct.pack("16sh", ifname.encode("ascii"), 0)
             ret = fcntl.ioctl(s.fileno(), 0x8913, ifreq)
             flags = struct.unpack("16sh", ret)[1]                   # SIOCGIFFLAGS
             flags |= 0x1
-            ifreq = struct.pack("16sh", ifname, flags)
+            ifreq = struct.pack("16sh", ifname.encode("ascii"), flags)
             fcntl.ioctl(s.fileno(), 0x8914, ifreq)                  # SIOCSIFFLAGS
         finally:
             s.close()
