@@ -75,7 +75,7 @@ class _PluginObject:
         while not os.path.exists(os.path.join(self.tmpDir, "etc-ppp", "resolv.conf")):
             time.sleep(1.0)
 
-        logging.info("WAN: Internet interface %s is managed." % (self.get_out_interface()))
+        logging.info("WAN: Internet interface \"%s\" is managed." % (self.get_out_interface()))
         return True
 
     def interface_disappear(self, ifname):
