@@ -3,10 +3,8 @@
 
 import os
 import time
-import fcntl
-import socket
-import struct
 import logging
+import pyroute2
 import subprocess
 
 
@@ -54,7 +52,9 @@ class _PluginObject:
             self.proc.terminate()
             self.proc.join()
             self.proc = None
-        _Util.setInterfaceUpDown(self.cfg["interface"], False)
+        with pyroute2.IPRoute() as ip:
+            idx = ip.link_lookup(ifname=self.cfg["interface"])[0]
+            ip.link("set", index=idx, state="down")
 
     def get_out_interface(self):
         return "wrt-ppp-wan"
@@ -64,7 +64,11 @@ class _PluginObject:
             return False
 
         assert self.proc is None
-        _Util.setInterfaceUpDown(self.cfg["interface"], True)
+
+        with pyroute2.IPRoute() as ip:
+            idx = ip.link_lookup(ifname=self.cfg["interface"])[0]
+            ip.link("set", index=idx, state="up")
+
         self.proc = subprocess.Popen([
             "/usr/bin/python3",
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "subproc_pppoe.py"),
@@ -87,24 +91,3 @@ class _PluginObject:
             self.proc.terminate()
             self.proc.wait()
             self.proc = None
-
-
-class _Util:
-
-    @staticmethod
-    def setInterfaceUpDown(ifname, upOrDown):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            ifreq = struct.pack("16sh", ifname.encode("ascii"), 0)
-            ret = fcntl.ioctl(s.fileno(), 0x8913, ifreq)
-            flags = struct.unpack("16sh", ret)[1]                   # SIOCGIFFLAGS
-
-            if upOrDown:
-                flags |= 0x1
-            else:
-                flags &= ~0x1
-
-            ifreq = struct.pack("16sh", ifname.encode("ascii"), flags)
-            fcntl.ioctl(s.fileno(), 0x8914, ifreq)                  # SIOCSIFFLAGS
-        finally:
-            s.close()
