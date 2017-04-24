@@ -12,6 +12,7 @@ import subprocess
 
 def get_plugin_list():
     return [
+        "generic-pppoe",
         "cn-bj-gwbn-4m",             # 中国北京长城宽带4M
         "cn-bj-gwbn-50m",            # 中国北京长城宽带50M
         "cn-bj-gwbn-70m",            # 中国北京长城宽带70M
@@ -20,6 +21,8 @@ def get_plugin_list():
 
 
 def get_plugin(name):
+    if name == "generic-pppoe":
+        return _PluginObject(None)
     if name == "cn-bj-gwbn-4m":
         return _PluginObject(4 * 1024 * 1024 / 8)
     if name == "cn-bj-gwbn-50m":
