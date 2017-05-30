@@ -78,7 +78,7 @@ class _PluginObject:
         if self.is_alive():
             t = netifaces.ifaddresses("wrt-ppp-wan")
             netobj = ipaddress.IPv4Network(t[netifaces.AF_INET]["addr"], t[netifaces.AF_INET]["netmask"], False)
-            return [(str(netobj.address), str(netobj.netmask))]
+            return [(str(netobj.network_address), str(netobj.netmask))]
         else:
             return None
 
