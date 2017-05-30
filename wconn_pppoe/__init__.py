@@ -5,6 +5,8 @@ import os
 import time
 import logging
 import pyroute2
+import ipaddress
+import netifaces
 import subprocess
 
 
@@ -19,45 +21,66 @@ def get_plugin_list():
 
 
 def get_plugin(name):
-    if name == "generic-pppoe":
-        return _PluginObject(None)
-    if name == "cn-bj-gwbn-4m":
-        return _PluginObject(4 * 1024 * 1024 / 8)
-    if name == "cn-bj-gwbn-50m":
-        return _PluginObject(50 * 1024 * 1024 / 8)
-    if name == "cn-bj-gwbn-70m":
-        return _PluginObject(70 * 1024 * 1024 / 8)
-    if name == "cn-bj-gwbn-100m":
-        return _PluginObject(100 * 1024 * 1024 / 8)
-    else:
-        assert False
+    return _PluginObject(name)
 
 
 class _PluginObject:
 
-    def __init__(self, bandwidth):
-        self.bandwidth = bandwidth              # byte/s
+    def __init__(self, name):
+        self.name = name
+        if self.name == "generic-pppoe":
+            self.bandwidth = None
+        elif self.name == "cn-bj-gwbn-4m":
+            self.bandwidth = 4 * 1024 * 1024 / 8              # byte/s
+        elif self.name == "cn-bj-gwbn-50m":
+            self.bandwidth = 50 * 1024 * 1024 / 8             # byte/s
+        elif self.name == "cn-bj-gwbn-70m":
+            self.bandwidth = 70 * 1024 * 1024 / 8             # byte/s
+        elif self.name == "cn-bj-gwbn-100m":
+            self.bandwidth = 100 * 1024 * 1024 / 8            # byte/s
+        else:
+            assert False
 
-    def init2(self, cfg, tmpDir, ownResolvConf):
+    def init2(self, cfg, tmpDir, ownResolvConf, upCallback, downCallback):
         self.cfg = cfg
         self.tmpDir = tmpDir
         self.ownResolvConf = ownResolvConf
+        self.upCallback = upCallback
+        self.downCallback = downCallback
+        self.logger = logging.getLogger(self.__module__ + "." + self.__class__.__name__ + "." + self.name)
         self.proc = None
 
     def start(self):
-        pass
+        self.logger.info("Started.")
 
     def stop(self):
         if self.proc is not None:
             self.proc.terminate()
             self.proc.join()
             self.proc = None
-        with pyroute2.IPRoute() as ip:
-            idx = ip.link_lookup(ifname=self.cfg["interface"])[0]
-            ip.link("set", index=idx, state="down")
+            with pyroute2.IPRoute() as ip:
+                idx = ip.link_lookup(ifname=self.cfg["interface"])[0]
+                ip.link("set", index=idx, state="down")
+            self.downCallback()
+            self.logger.info("Interface \"%s\" unmanaged." % (self.cfg["interface"]))
+        self.logger.info("Stopped.")
 
-    def get_out_interface(self):
-        return "wrt-ppp-wan"
+    def is_alive(self):
+        return self.proc is not None
+
+    def get_prefix_list(self):
+        if self.is_alive():
+            t = netifaces.ifaddresses("wrt-ppp-wan")
+            netobj = ipaddress.IPv4Network(t[netifaces.AF_INET]["addr"], t[netifaces.AF_INET]["netmask"], False)
+            return (str(netobj.address), str(netobj.netmask))
+        else:
+            return None
+
+    def get_interface(self):
+        if self.is_alive():
+            return "wrt-ppp-wan"
+        else:
+            return None
 
     def interface_appear(self, ifname):
         if ifname != self.cfg["interface"]:
@@ -82,7 +105,8 @@ class _PluginObject:
         while not os.path.exists(os.path.join(self.tmpDir, "etc-ppp", "resolv.conf")):
             time.sleep(1.0)
 
-        logging.info("WAN: Internet interface \"%s\" is managed." % (self.get_out_interface()))
+        self.logger.info("Interface \"%s\" managed." % (self.cfg["interface"]))
+        self.upCallback()
         return True
 
     def interface_disappear(self, ifname):
@@ -91,3 +115,5 @@ class _PluginObject:
             self.proc.terminate()
             self.proc.wait()
             self.proc = None
+            self.downCallback()
+            self.logger.info("Interface \"%s\" unmanaged." % (self.cfg["interface"]))
