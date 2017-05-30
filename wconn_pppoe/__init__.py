@@ -68,17 +68,17 @@ class _PluginObject:
     def is_alive(self):
         return self.proc is not None
 
+    def get_interface(self):
+        if self.is_alive():
+            return "wrt-ppp-wan"
+        else:
+            return None
+
     def get_prefix_list(self):
         if self.is_alive():
             t = netifaces.ifaddresses("wrt-ppp-wan")
             netobj = ipaddress.IPv4Network(t[netifaces.AF_INET]["addr"], t[netifaces.AF_INET]["netmask"], False)
-            return (str(netobj.address), str(netobj.netmask))
-        else:
-            return None
-
-    def get_interface(self):
-        if self.is_alive():
-            return "wrt-ppp-wan"
+            return [(str(netobj.address), str(netobj.netmask))]
         else:
             return None
 
