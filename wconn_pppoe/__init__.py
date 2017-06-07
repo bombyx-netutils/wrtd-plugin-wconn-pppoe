@@ -77,12 +77,10 @@ class _PluginObject:
         return "wrt-ppp-wan"
 
     def get_prefix_list(self):
-        if self.is_alive():
-            t = netifaces.ifaddresses("wrt-ppp-wan")
-            netobj = ipaddress.IPv4Network(t[netifaces.AF_INET][0]["addr"] + "/" + t[netifaces.AF_INET][0]["netmask"], strict=False)
-            return [(str(netobj.network_address), str(netobj.netmask))]
-        else:
-            return None
+        assert self.is_alive()
+        t = netifaces.ifaddresses("wrt-ppp-wan")
+        netobj = ipaddress.IPv4Network(t[netifaces.AF_INET][0]["addr"] + "/" + t[netifaces.AF_INET][0]["netmask"], strict=False)
+        return [(str(netobj.network_address), str(netobj.netmask))]
 
     def interface_appear(self, ifname):
         if ifname != self.cfg["interface"]:
