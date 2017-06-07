@@ -68,11 +68,13 @@ class _PluginObject:
     def is_alive(self):
         return self.proc is not None
 
+    def get_ip(self):
+        assert self.is_alive()
+        return netifaces.ifaddresses("wrt-ppp-wan")[netifaces.AF_INET][0]["addr"]
+
     def get_interface(self):
-        if self.is_alive():
-            return "wrt-ppp-wan"
-        else:
-            return None
+        assert self.is_alive()
+        return "wrt-ppp-wan"
 
     def get_prefix_list(self):
         if self.is_alive():
