@@ -65,19 +65,19 @@ class _PluginObject:
             self.logger.info("Interface \"%s\" unmanaged." % (self.cfg["interface"]))
         self.logger.info("Stopped.")
 
-    def is_alive(self):
+    def is_connected(self):
         return self.proc is not None
 
     def get_ip(self):
-        assert self.is_alive()
+        assert self.is_connected()
         return netifaces.ifaddresses("wrt-ppp-wan")[netifaces.AF_INET][0]["addr"]
 
     def get_interface(self):
-        assert self.is_alive()
+        assert self.is_connected()
         return "wrt-ppp-wan"
 
     def get_prefix_list(self):
-        assert self.is_alive()
+        assert self.is_connected()
         t = netifaces.ifaddresses("wrt-ppp-wan")
         netobj = ipaddress.IPv4Network(t[netifaces.AF_INET][0]["addr"] + "/" + t[netifaces.AF_INET][0]["netmask"], strict=False)
         return [(str(netobj.network_address), str(netobj.netmask))]
