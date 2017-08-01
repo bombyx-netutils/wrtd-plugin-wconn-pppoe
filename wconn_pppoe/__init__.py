@@ -5,7 +5,6 @@ import os
 import time
 import logging
 import pyroute2
-import ipaddress
 import netifaces
 import subprocess
 
@@ -72,15 +71,17 @@ class _PluginObject:
         assert self.is_connected()
         return netifaces.ifaddresses("wrt-ppp-wan")[netifaces.AF_INET][0]["addr"]
 
+    def get_netmask(self):
+        assert self.is_connected()
+        return netifaces.ifaddresses("wrt-ppp-wan")[netifaces.AF_INET][0]["netmask"]
+
     def get_interface(self):
         assert self.is_connected()
         return "wrt-ppp-wan"
 
-    def get_prefix_list(self):
+    def get_extra_prefix_list(self):
         assert self.is_connected()
-        t = netifaces.ifaddresses("wrt-ppp-wan")
-        netobj = ipaddress.IPv4Network(t[netifaces.AF_INET][0]["addr"] + "/" + t[netifaces.AF_INET][0]["netmask"], strict=False)
-        return [(str(netobj.network_address), str(netobj.netmask))]
+        return []
 
     def interface_appear(self, ifname):
         if ifname != self.cfg["interface"]:
