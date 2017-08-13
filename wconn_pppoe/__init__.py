@@ -49,6 +49,9 @@ class _PluginObject:
         self.logger = logging.getLogger(self.__module__ + "." + self.__class__.__name__ + "." + self.name)
         self.proc = None
 
+    def get_interface(self):
+        return "wrt-ppp-wan"
+
     def start(self):
         self.logger.info("Started.")
 
@@ -74,10 +77,6 @@ class _PluginObject:
     def get_netmask(self):
         assert self.is_connected()
         return netifaces.ifaddresses("wrt-ppp-wan")[netifaces.AF_INET][0]["netmask"]
-
-    def get_interface(self):
-        assert self.is_connected()
-        return "wrt-ppp-wan"
 
     def get_extra_prefix_list(self):
         assert self.is_connected()
