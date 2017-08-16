@@ -30,13 +30,13 @@ class _PluginObject:
         if self.name == "generic-pppoe":
             self.bandwidth = None
         elif self.name == "cn-bj-gwbn-4m":
-            self.bandwidth = 4 * 1024 * 1024 / 8              # byte/s
+            self.bandwidth = 4 * 1024 / 8              # KB/s
         elif self.name == "cn-bj-gwbn-50m":
-            self.bandwidth = 50 * 1024 * 1024 / 8             # byte/s
+            self.bandwidth = 50 * 1024 / 8             # KB/s
         elif self.name == "cn-bj-gwbn-70m":
-            self.bandwidth = 70 * 1024 * 1024 / 8             # byte/s
+            self.bandwidth = 70 * 1024 / 8             # KB/s
         elif self.name == "cn-bj-gwbn-100m":
-            self.bandwidth = 100 * 1024 * 1024 / 8            # byte/s
+            self.bandwidth = 100 * 1024 / 8            # KB/s
         else:
             assert False
 
@@ -81,6 +81,12 @@ class _PluginObject:
     def get_extra_prefix_list(self):
         assert self.is_connected()
         return []
+
+    def get_business_attributes(self):
+        assert self.is_connected()
+        return {
+            "bandwidth": self.bandwidth,
+        }
 
     def interface_appear(self, ifname):
         if ifname != self.cfg["interface"]:
