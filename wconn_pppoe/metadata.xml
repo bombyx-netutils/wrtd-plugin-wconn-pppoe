@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<plugin>
+  <wan-connection id="generic-pppoe">
+    <description>Generic PPPoE WAN connection</description>
+    <filename>plugin.py</filename>
+    <classname>PluginGeneric</classname>
+  </wan-connection>
+  <wan-connection id="cn-bj-gwbn-4m">
+    <description>Beijing Greatwall Broadband Network of China (4M)</description>
+    <description lang="zh_CN">中国北京长城宽带(4M)</description>
+    <filename>plugin.py</filename>
+    <classname>PluginCnGwbn</classname>
+  </wan-connection>
+  <wan-connection id="cn-bj-gwbn-50m">
+    <description>Beijing Greatwall Broadband Network of China (50M)</description>
+    <description lang="zh_CN">中国北京长城宽带(50M)</description>
+    <filename>plugin.py</filename>
+    <classname>PluginCnGwbn</classname>
+  </wan-connection>
+  <wan-connection id="cn-bj-gwbn-70m">
+    <description>Beijing Greatwall Broadband Network of China (70M)</description>
+    <description lang="zh_CN">中国北京长城宽带(70M)</description>
+    <filename>plugin.py</filename>
+    <classname>PluginCnGwbn</classname>
+  </wan-connection>
+  <wan-connection id="cn-bj-gwbn-100m">
+    <description>Beijing Greatwall Broadband Network of China (100M)</description>
+    <description lang="zh_CN">中国北京长城宽带(100M)</description>
+    <filename>plugin.py</filename>
+    <classname>PluginCnGwbn</classname>
+  </wan-connection>
+</plugin>

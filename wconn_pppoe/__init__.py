@@ -9,36 +9,11 @@ import netifaces
 import subprocess
 
 
-def get_plugin_list():
-    return [
-        "generic-pppoe",
-        "cn-bj-gwbn-4m",             # 中国北京长城宽带4M
-        "cn-bj-gwbn-50m",            # 中国北京长城宽带50M
-        "cn-bj-gwbn-70m",            # 中国北京长城宽带70M
-        "cn-bj-gwbn-100m",           # 中国北京长城宽带100M
-    ]
+class PluginGeneric:
 
-
-def get_plugin(name):
-    return _PluginObject(name)
-
-
-class _PluginObject:
-
-    def __init__(self, name):
-        self.name = name
-        if self.name == "generic-pppoe":
-            self.bandwidth = None
-        elif self.name == "cn-bj-gwbn-4m":
-            self.bandwidth = 4 * 1024 / 8              # KB/s
-        elif self.name == "cn-bj-gwbn-50m":
-            self.bandwidth = 50 * 1024 / 8             # KB/s
-        elif self.name == "cn-bj-gwbn-70m":
-            self.bandwidth = 70 * 1024 / 8             # KB/s
-        elif self.name == "cn-bj-gwbn-100m":
-            self.bandwidth = 100 * 1024 / 8            # KB/s
-        else:
-            assert False
+    def __init__(self, plugin_id):
+        self.name = plugin_id
+        self.bandwidth = None
 
     def init2(self, cfg, tmpDir, ownResolvConf, upCallback, downCallback):
         self.cfg = cfg
@@ -123,3 +98,19 @@ class _PluginObject:
             self.proc = None
             self.downCallback()
             self.logger.info("Interface \"%s\" unmanaged." % (self.cfg["interface"]))
+
+
+class PluginCnGwbn(PluginGeneric):
+
+    def __init__(self, plugin_id):
+        super().__init__(plugin_id)
+        if plugin_id == "cn-bj-gwbn-4m":
+            self.bandwidth = 4 * 1024 / 8              # KB/s
+        elif plugin_id == "cn-bj-gwbn-50m":
+            self.bandwidth = 50 * 1024 / 8             # KB/s
+        elif plugin_id == "cn-bj-gwbn-70m":
+            self.bandwidth = 70 * 1024 / 8             # KB/s
+        elif plugin_id == "cn-bj-gwbn-100m":
+            self.bandwidth = 100 * 1024 / 8            # KB/s
+        else:
+            assert False
